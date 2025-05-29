@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: url('/static/background image.webp') center/cover no-repeat fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .result.spam {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+        }
+
+        .result.ham {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            color: white;
+        }
+
+        .result.error {
+            background: linear-gradient(135deg, #ffa8a8, #ff8787);
+            color: white;
+        }
+
+        .result-header {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .confidence-bars {
+            margin-top: 15px;
+        }
+
+        .confidence-item {
+            margin-bottom: 10px;
+        }
+
+        .confidence-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .confidence-bar {
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: rgba(255,255,255,0.8);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .example-messages {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .example-messages h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .example-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            cursor: pointer;
+            margin: 5px;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .example-btn:hover {
+            background: #dee2e6;
+            transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 25px;
+                margin: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Spam Detection</h1>
+            <p>Enter a message below to check if it's spam or legitimate</p>
+        </div>
+
+        <form id="predictionForm">
+            <div class="form-group">
+                <label for="message">Message to Analyze:</label>
+                <textarea 
+                    id="message" 
+                    name="message" 
+                    placeholder="Enter your message here... (e.g., 'Congratulations! You've won $1000! Click here now!')"
+                    required
+                ></textarea>
+            </div>
+            
+            <button type="submit" class="btn" id="predictBtn">
+                🔍 Analyze Message
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing message...</p>
+        </div>
+
+        <div class="result" id="result">
+            <div class="result-header" id="resultHeader"></div>
+            <div class="result-content" id="resultContent"></div>
+            <div class="confidence-bars" id="confidenceBars"></div>
+        </div>
+
+        <div class="example-messages">
+            <h3>💡 Try these examples:</h3>
+            <button class="example-btn" onclick="fillExample('WINNER! You have been selected for a $5000 cash prize! Call now 1-800-CASH-NOW!')">
+                🎉 Prize Winner
+            </button>
+            <button class="example-btn" onclick="fillExample('Hey, are we still meeting for lunch tomorrow?')">
+                👋 Casual Message
+            </button>
+            <button class="example-btn" onclick="fillExample('Pre-approved for a credit card with $50,000 limit! Bad credit OK! Apply now!')">
+                ⚠️ Finance scam
+            </button>
+            <button class="example-btn" onclick="fillExample('Thanks for the birthday wishes yesterday, had a great time!')">
+                🎂 Thank You
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const message = document.getElementById('message').value.trim();
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const predictBtn = document.getElementById('predictBtn');
+            
+            if (!message) {
+                alert('Please enter a message to analyze.');
+                return;
+            }
+            
+            // Show loading
+            loading.style.display = 'block';
+            result.style.display = 'none';
+            predictBtn.disabled = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('message', message);
+                
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showResult('error', 'Error', data.error);
+                } else {
+                    const isSpam = data.is_spam;
+                    const prediction = data.prediction;
+                    const confidence = data.confidence;
+                    
+                    const resultType = isSpam ? 'spam' : 'ham';
+                    const icon = isSpam ? '🚨' : '✅';
+                    const title = `${icon} ${prediction}`;
+                    
+                    let content = `<strong>Message:</strong> "${data.message.length > 100 ? data.message.substring(0, 100) + '...' : data.message}"<br><br>`;
+                    content += `<strong>Classification:</strong> This message is classified as <strong>${prediction}</strong>`;
+                    
+                    showResult(resultType, title, content, confidence);
+                }
+            } catch (error) {
+                showResult('error', '❌ Error', 'Failed to analyze message. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+        
+        function showResult(type, title, content, confidence = null) {
+            const result = document.getElementById('result');
+            const resultHeader = document.getElementById('resultHeader');
+            const resultContent = document.getElementById('resultContent');
+            const confidenceBars = document.getElementById('confidenceBars');
+            
+            result.className = `result ${type}`;
+            resultHeader.innerHTML = title;
+            resultContent.innerHTML = content;
+            
+            if (confidence) {
+                confidenceBars.innerHTML = `
+                    <div class="confidence-item">
+                        <div class="confidence-label">
+                            <span>🔒 Legitimate (Ham)</span>
+                            <span>${confidence.ham}%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidence.ham}%"></div>
+                        </div>
+                    </div>
+                    <div class="confidence-item">
+                        <div class="confidence-label">
+                            <span>🚨 Spam</span>
+                            <span>${confidence.spam}%</span>
+                        </div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidence.spam}%"></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                confidenceBars.innerHTML = '';
+            }
+            
+            result.style.display = 'block';
+            result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        function fillExample(text) {
+            document.getElementById('message').value = text;
+        }
+    </script>
+</body>
+</html>
